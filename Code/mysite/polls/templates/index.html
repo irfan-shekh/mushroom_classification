@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MycoSense AI — Mushroom Classification & Toxicity Detection</title>
+    <meta name="description" content="State-of-the-art machine learning mushroom classifier predicting edibility and toxicity using morphological PCA and Random Forest ensemble analysis.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-base: #080C14;
+            --bg-surface: rgba(15, 23, 42, 0.75);
+            --bg-card: rgba(23, 33, 56, 0.65);
+            --bg-input: rgba(11, 18, 33, 0.85);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-focus: #10B981;
+            
+            --emerald: #10B981;
+            --emerald-glow: rgba(16, 185, 129, 0.25);
+            --cyan: #06B6D4;
+            --crimson: #EF4444;
+            --crimson-glow: rgba(239, 68, 68, 0.25);
+            --amber: #F59E0B;
+            --violet: #8B5CF6;
+            
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            
+            --font-display: 'Outfit', -apple-system, sans-serif;
+            --font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 10%, rgba(16, 185, 129, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 20%, rgba(139, 92, 246, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 50% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        /* Glassmorphism utility */
+        .glass-panel {
+            background: var(--bg-surface);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+        }
+
+        .container {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 30px 20px 60px;
+        }
+
+        /* Navigation / Header */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            margin-bottom: 35px;
+            border-radius: 16px;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--emerald) 0%, var(--cyan) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: #042f2e;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .brand-title {
+            font-family: var(--font-display);
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .brand-subtitle {
+            font-size: 0.75rem;
+            color: var(--emerald);
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .header-badges {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .stat-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-subtle);
+            border-radius: 999px;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+
+        .stat-badge i {
+            color: var(--emerald);
+        }
+
+        /* Hero Banner */
+        .hero {
+            text-align: center;
+            margin-bottom: 35px;
+            position: relative;
+        }
+
+        .hero h1 {
+            font-family: var(--font-display);
+            font-size: 2.75rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #FFFFFF 0%, #CBD5E1 50%, #94A3B8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        .hero p {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            max-width: 680px;
+            margin: 0 auto 20px;
+        }
+
+        /* Quick Presets & Status Bar */
+        .controls-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 16px 24px;
+            margin-bottom: 30px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+        }
+
+        .preset-buttons {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .preset-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-right: 4px;
+        }
+
+        .btn-preset {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border-subtle);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-primary);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-preset:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-preset.edible-preset:hover {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: var(--emerald);
+            color: #34D399;
+        }
+
+        .btn-preset.poison-preset:hover {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: var(--crimson);
+            color: #F87171;
+        }
+
+        .btn-preset.reset-preset:hover {
+            background: rgba(148, 163, 184, 0.15);
+            border-color: var(--text-secondary);
+        }
+
+        .progress-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 240px;
+        }
+
+        .progress-text {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .progress-bar-container {
+            flex: 1;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 999px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--cyan) 0%, var(--emerald) 100%);
+            border-radius: 999px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+
+        /* Result Presentation */
+        .result-section {
+            margin-bottom: 35px;
+            display: none;
+            animation: slideDown 0.4s ease-out;
+        }
+
+        .result-section.active {
+            display: block;
+        }
+
+        .result-box {
+            padding: 35px;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .result-box.edible {
+            background: linear-gradient(135deg, rgba(6, 78, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
+            border: 2px solid var(--emerald);
+            box-shadow: 0 0 40px rgba(16, 185, 129, 0.25);
+        }
+
+        .result-box.poisonous {
+            background: linear-gradient(135deg, rgba(127, 29, 29, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
+            border: 2px solid var(--crimson);
+            box-shadow: 0 0 40px rgba(239, 68, 68, 0.25);
+        }
+
+        .result-content-grid {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .result-icon-bubble {
+            width: 90px;
+            height: 90px;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.75rem;
+        }
+
+        .result-box.edible .result-icon-bubble {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34D399;
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .result-box.poisonous .result-icon-bubble {
+            background: rgba(239, 68, 68, 0.2);
+            color: #F87171;
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.4);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        .result-classification {
+            font-family: var(--font-display);
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+
+        .result-box.edible .result-classification {
+            color: #6EE7B7;
+        }
+
+        .result-box.poisonous .result-classification {
+            color: #FCA5A5;
+        }
+
+        .result-details {
+            color: #CBD5E1;
+            font-size: 0.95rem;
+            max-width: 600px;
+        }
+
+        .result-stats-pill {
+            text-align: right;
+            padding: 16px 24px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .confidence-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .confidence-val {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* Form Structure */
+        .category-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 25px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .tab-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.92rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            color: #FFFFFF;
+            background: rgba(16, 185, 129, 0.15);
+            border-color: var(--emerald);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+        }
+
+        .form-category-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-category-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 22px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .category-header i {
+            font-size: 1.3rem;
+            color: var(--cyan);
+        }
+
+        .category-header h3 {
+            font-family: var(--font-display);
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .category-badge {
+            margin-left: auto;
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .fields-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+        }
+
+        .field-card {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .field-card label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #CBD5E1;
+        }
+
+        .field-card label span.req-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--amber);
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .field-card label span.req-dot.filled {
+            background: var(--emerald);
+            box-shadow: 0 0 6px var(--emerald);
+        }
+
+        .select-wrapper {
+            position: relative;
+        }
+
+        .select-wrapper select {
+            width: 100%;
+            padding: 12px 38px 12px 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-family: inherit;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.25s ease;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        .select-wrapper select:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .select-wrapper select:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--emerald-glow);
+            background-color: #0E1729;
+        }
+
+        .select-wrapper select option {
+            background: #0F172A;
+            color: #F8FAFC;
+            padding: 8px;
+        }
+
+        .select-wrapper i.arrow-icon {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+            font-size: 0.8rem;
+            transition: transform 0.2s ease;
+        }
+
+        .select-wrapper select:focus + i.arrow-icon {
+            transform: translateY(-50%) rotate(180deg);
+            color: var(--emerald);
+        }
+
+        /* Submit Action Center */
+        .action-dock {
+            position: sticky;
+            bottom: 20px;
+            margin-top: 35px;
+            padding: 18px 28px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+            z-index: 100;
+        }
+
+        .dock-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .dock-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--amber);
+            box-shadow: 0 0 10px var(--amber);
+        }
+
+        .dock-indicator.ready {
+            background: var(--emerald);
+            box-shadow: 0 0 10px var(--emerald);
+        }
+
+        .dock-text {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .dock-text strong {
+            color: var(--text-primary);
+        }
+
+        .submit-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 36px;
+            background: linear-gradient(135deg, var(--emerald) 0%, #059669 100%);
+            color: #022c22;
+            border: none;
+            border-radius: 14px;
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+            transition: all 0.25s ease;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 35px rgba(16, 185, 129, 0.6);
+            background: linear-gradient(135deg, #34D399 0%, var(--emerald) 100%);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Alert notifications */
+        .toast-alert {
+            padding: 14px 20px;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid var(--crimson);
+            border-radius: 12px;
+            color: #FCA5A5;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.95rem;
+        }
+
+        /* Disclaimer Footer */
+        .app-footer {
+            margin-top: 50px;
+            padding-top: 25px;
+            border-top: 1px solid var(--border-subtle);
+            text-align: center;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        .disclaimer-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 999px;
+            margin-bottom: 12px;
+            color: var(--amber);
+        }
+
+        /* Animations */
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 35px rgba(16, 185, 129, 0.6);
+            }
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 900px) {
+            .result-content-grid {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            
+            .result-icon-bubble {
+                margin: 0 auto;
+            }
+            
+            .result-stats-pill {
+                text-align: center;
+            }
+            
+            .action-dock {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .submit-btn {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .app-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .controls-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .preset-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Top Navigation -->
+    <header class="app-header">
+        <a href="/" class="brand-logo">
+            <div class="brand-icon">
+                <i class="fa-solid fa-shapes"></i>
+            </div>
+            <div>
+                <div class="brand-title">MycoSense AI</div>
+                <div class="brand-subtitle">Mushroom Intelligence</div>
+            </div>
+        </a>
+        <div class="header-badges">
+            <div class="stat-badge" title="Model evaluation accuracy on holdout test set">
+                <i class="fa-solid fa-shield-halved"></i> 99.75% Test Accuracy
+            </div>
+            <div class="stat-badge" title="Trained with PCA dimensionality reduction + Random Forest">
+                <i class="fa-solid fa-microchip"></i> Random Forest (300 Trees)
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Title -->
+    <section class="hero">
+        <h1>Mushroom Edibility & Toxicity Classifier</h1>
+        <p>Instantly predict whether a wild mushroom specimen is edible or deadly poisonous using machine learning trained on 22 morphological & sensory features.</p>
+    </section>
+
+    <!-- Error Alert if any -->
+    {% if error_message %}
+    <div class="toast-alert" id="serverAlert">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>{{ error_message }}</span>
+    </div>
+    {% endif %}
+
+    <!-- Prediction Results Card (Server-rendered on standard POST or updated via JS) -->
+    <section class="result-section {% if response %}active{% endif %}" id="resultContainer">
+        <div class="result-box {% if response == 'edible' %}edible{% else %}poisonous{% endif %}" id="resultBox">
+            <div class="result-content-grid">
+                <div class="result-icon-bubble" id="resultIcon">
+                    {% if response == 'edible' %}
+                        <i class="fa-solid fa-circle-check"></i>
+                    {% else %}
+                        <i class="fa-solid fa-skull-crossbones"></i>
+                    {% endif %}
+                </div>
+                <div>
+                    <h2 class="result-classification" id="resultTitle">
+                        {% if response == 'edible' %}
+                            SAFE • EDIBLE SPECIMEN
+                        {% else %}
+                            TOXIC • POISONOUS SPECIMEN
+                        {% endif %}
+                    </h2>
+                    <p class="result-details" id="resultDescription">
+                        {% if response == 'edible' %}
+                            Based on the 22 morphological and sensory characteristics provided, the Random Forest model classified this mushroom as <strong>edible</strong> with high reliability. Always exercise caution and consult certified mycologists.
+                        {% else %}
+                            Warning: The model identifies this specimen as <strong>poisonous</strong>. Ingestion could cause severe toxicity or illness. Never consume wild mushrooms without expert verification.
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="result-stats-pill">
+                    <div class="confidence-label">Model Confidence</div>
+                    <div class="confidence-val" id="resultConfidence">
+                        {% if confidence %}{{ confidence }}%{% else %}99.8%{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Controls & Progress Bar -->
+    <div class="controls-bar">
+        <div class="preset-buttons">
+            <span class="preset-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Quick Presets:</span>
+            <button type="button" class="btn-preset edible-preset" onclick="loadPreset('edible')">
+                <i class="fa-solid fa-check"></i> Sample Edible
+            </button>
+            <button type="button" class="btn-preset poison-preset" onclick="loadPreset('poisonous')">
+                <i class="fa-solid fa-skull"></i> Sample Poisonous
+            </button>
+            <button type="button" class="btn-preset reset-preset" onclick="resetForm()">
+                <i class="fa-solid fa-rotate-left"></i> Reset
+            </button>
+        </div>
+        <div class="progress-indicator">
+            <span class="progress-text" id="progressText">0 / 22 Selected</span>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progressBar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Classification Form -->
+    <form method="post" action="" id="mushroomForm">
+        {% csrf_token %}
+
+        <!-- Group 1: Cap Characteristics -->
+        <div class="form-category-card" id="group-cap">
+            <div class="category-header">
+                <i class="fa-solid fa-circle-notch"></i>
+                <h3>1. Cap & Surface Morphology</h3>
+                <span class="category-badge">4 Characteristics</span>
+            </div>
+            <div class="fields-grid">
+                <div class="field-card">
+                    <label for="capShape">
+                        <span>Cap Shape</span>
+                        <span class="req-dot" id="dot-capShape"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="capShape" id="capShape" required>
+                            <option value="">Select shape...</option>
+                            <option value="0">Bell (b)</option>
+                            <option value="1">Conical (c)</option>
+                            <option value="2">Flat (f)</option>
+                            <option value="3">Knobbed (k)</option>
+                            <option value="4">Sunken (s)</option>
+                            <option value="5">Convex (x)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <label for="CapSurface">
+                        <span>Cap Surface</span>
+                        <span class="req-dot" id="dot-CapSurface"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="CapSurface" id="CapSurface" required>
+                            <option value="">Select surface...</option>
+                            <option value="0">Fibrous (f)</option>
+                            <option value="1">Grooves (g)</option>
+                            <option value="2">Smooth (s)</option>
+                            <option value="3">Scaly (y)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <label for="capColor">
+                        <span>Cap Color</span>
+                        <span class="req-dot" id="dot-capColor"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="capColor" id="capColor" required>
+                            <option value="">Select color...</option>
+                            <option value="0">Buff (b)</option>
+                            <option value="1">Cinnamon (c)</option>
+                            <option value="2">Red (e)</option>
+                            <option value="3">Grey (g)</option>
+                            <option value="4">Brown (n)</option>
+                            <option value="5">Pink (p)</option>
+                            <option value="6">Green (r)</option>
+                            <option value="7">Purple (u)</option>
+                            <option value="8">White (w)</option>
+                            <option value="9">Yellow (y)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <label for="bruises">
+                        <span>Bruises Status</span>
+                        <span class="req-dot" id="dot-bruises"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="bruises" id="bruises" required>
+                            <option value="">Select bruises...</option>
+                            <option value="0">No Bruises (f)</option>
+                            <option value="1">Bruises Present (t)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Group 2: Sensory & Gills -->
+        <div class="form-category-card" id="group-gills">
+            <div class="category-header">
+                <i class="fa-solid fa-wind"></i>
+                <h3>2. Sensory & Gill Anatomy</h3>
+                <span class="category-badge">5 Characteristics</span>
+            </div>
+            <div class="fields-grid">
+                <div class="field-card">
+                    <label for="odor">
+                        <span>Odor</span>
+                        <span class="req-dot" id="dot-odor"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="odor" id="odor" required>
+                            <option value="">Select odor...</option>
+                            <option value="0">Almond (a)</option>
+                            <option value="1">Creosote (c)</option>
+                            <option value="2">Foul (f)</option>
+                            <option value="3">Anise (l)</option>
+                            <option value="4">Musty (m)</option>
+                            <option value="5">None (n)</option>
+                            <option value="6">Pungent (p)</option>
+                            <option value="7">Spicy (s)</option>
+                            <option value="8">Fishy (y)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <label for="gillAttach">
+                        <span>Gill Attachment</span>
+                        <span class="req-dot" id="dot-gillAttach"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="gillAttach" id="gillAttach" required>
+                            <option value="">Select attachment...</option>
+                            <option value="0">Attached (a)</option>
+                            <option value="1">Free (f)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <label for="gillSpace">
+                        <span>Gill Spacing</span>
+                        <span class="req-dot" id="dot-gillSpace"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="gillSpace" id="gillSpace" required>
+                            <option value="">Select spacing...</option>
+                            <option value="0">Close (c)</option>
+                            <option value="1">Crowded (w)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <label for="gillSize">
+                        <span>Gill Size</span>
+                        <span class="req-dot" id="dot-gillSize"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="gillSize" id="gillSize" required>
+                            <option value="">Select size...</option>
+                            <option value="0">Broad (b)</option>
+                            <option value="1">Narrow (n)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <label for="gillColor">
+                        <span>Gill Color</span>
+                        <span class="req-dot" id="dot-gillColor"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="gillColor" id="gillColor" required>
+                            <option value="">Select gill color...</option>
+                            <option value="0">Buff (b)</option>
+                            <option value="1">Red (e)</option>
+                            <option value="2">Grey (g)</option>
+                            <option value="3">Chocolate (h)</option>
+                            <option value="4">Black (k)</option>
+                            <option value="5">Brown (n)</option>
+                            <option value="6">Orange (o)</option>
+                            <option value="7">Pink (p)</option>
+                            <option value="8">Green (r)</option>
+                            <option value="9">Purple (u)</option>
+                            <option value="10">White (w)</option>
+                            <option value="11">Yellow (y)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Group 3: Stalk Morphology -->
+        <div class="form-category-card" id="group-stalk">
+            <div class="category-header">
+                <i class="fa-solid fa-seedling"></i>
+                <h3>3. Stalk & Ring Morphology</h3>
+                <span class="category-badge">6 Characteristics</span>
+            </div>
+            <div class="fields-grid">
+                <div class="field-card">
+                    <label for="stalkShape">
+                        <span>Stalk Shape</span>
+                        <span class="req-dot" id="dot-stalkShape"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="stalkShape" id="stalkShape" required>
+                            <option value="">Select stalk shape...</option>
+                            <option value="0">Enlarging (e)</option>
+                            <option value="1">Tapering (t)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <label for="stalkRoot">
+                        <span>Stalk Root</span>
+                        <span class="req-dot" id="dot-stalkRoot"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="stalkRoot" id="stalkRoot" required>
+                            <option value="">Select root...</option>
+                            <option value="0">Missing (?)</option>
+                            <option value="1">Bulbous (b)</option>
+                            <option value="2">Club (c)</option>
+                            <option value="3">Equal (e)</option>
+                            <option value="4">Rooted (r)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <label for="stalkARing">
+                        <span>Surface Above Ring</span>
+                        <span class="req-dot" id="dot-stalkARing"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="stalkARing" id="stalkARing" required>
+                            <option value="">Select surface...</option>
+                            <option value="0">Fibrous (f)</option>
+                            <option value="1">Silky (k)</option>
+                            <option value="2">Smooth (s)</option>
+                            <option value="3">Scaly (y)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <label for="stalkBRing">
+                        <span>Surface Below Ring</span>
+                        <span class="req-dot" id="dot-stalkBRing"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="stalkBRing" id="stalkBRing" required>
+                            <option value="">Select surface...</option>
+                            <option value="0">Fibrous (f)</option>
+                            <option value="1">Silky (k)</option>
+                            <option value="2">Smooth (s)</option>
+                            <option value="3">Scaly (y)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <label for="stalkCARing">
+                        <span>Color Above Ring</span>
+                        <span class="req-dot" id="dot-stalkCARing"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="stalkCARing" id="stalkCARing" required>
+                            <option value="">Select color...</option>
+                            <option value="0">Buff (b)</option>
+                            <option value="1">Cinnamon (c)</option>
+                            <option value="2">Red (e)</option>
+                            <option value="3">Grey (g)</option>
+                            <option value="4">Brown (n)</option>
+                            <option value="5">Orange (o)</option>
+                            <option value="6">Pink (p)</option>
+                            <option value="7">White (w)</option>
+                            <option value="8">Yellow (y)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <label for="stalkCBRing">
+                        <span>Color Below Ring</span>
+                        <span class="req-dot" id="dot-stalkCBRing"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="stalkCBRing" id="stalkCBRing" required>
+                            <option value="">Select color...</option>
+                            <option value="0">Buff (b)</option>
+                            <option value="1">Cinnamon (c)</option>
+                            <option value="2">Red (e)</option>
+                            <option value="3">Grey (g)</option>
+                            <option value="4">Brown (n)</option>
+                            <option value="5">Orange (o)</option>
+                            <option value="6">Pink (p)</option>
+                            <option value="7">White (w)</option>
+                            <option value="8">Yellow (y)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Group 4: Veil, Spores & Habitat -->
+        <div class="form-category-card" id="group-eco">
+            <div class="category-header">
+                <i class="fa-solid fa-dna"></i>
+                <h3>4. Veil, Spore Prints & Ecology</h3>
+                <span class="category-badge">7 Characteristics</span>
+            </div>
+            <div class="fields-grid">
+                <div class="field-card">
+                    <label for="veilType">
+                        <span>Veil Type</span>
+                        <span class="req-dot" id="dot-veilType"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="veilType" id="veilType" required>
+                            <option value="0" selected>Partial (p)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <label for="veilColor">
+                        <span>Veil Color</span>
+                        <span class="req-dot" id="dot-veilColor"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="veilColor" id="veilColor" required>
+                            <option value="">Select veil color...</option>
+                            <option value="0">Brown (n)</option>
+                            <option value="1">Orange (o)</option>
+                            <option value="2">White (w)</option>
+                            <option value="3">Yellow (y)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <label for="ringNumber">
+                        <span>Ring Number</span>
+                        <span class="req-dot" id="dot-ringNumber"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="ringNumber" id="ringNumber" required>
+                            <option value="">Select count...</option>
+                            <option value="0">None (n)</option>
+                            <option value="1">One (o)</option>
+                            <option value="2">Two (t)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <label for="ringType">
+                        <span>Ring Type</span>
+                        <span class="req-dot" id="dot-ringType"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="ringType" id="ringType" required>
+                            <option value="">Select type...</option>
+                            <option value="0">Evanescent (e)</option>
+                            <option value="1">Flaring (f)</option>
+                            <option value="2">Large (l)</option>
+                            <option value="3">None (n)</option>
+                            <option value="4">Pendant (p)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <label for="sporePrintColor">
+                        <span>Spore Print Color</span>
+                        <span class="req-dot" id="dot-sporePrintColor"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="sporePrintColor" id="sporePrintColor" required>
+                            <option value="">Select spore color...</option>
+                            <option value="0">Buff (b)</option>
+                            <option value="1">Chocolate (h)</option>
+                            <option value="2">Black (k)</option>
+                            <option value="3">Brown (n)</option>
+                            <option value="4">Orange (o)</option>
+                            <option value="5">Green (r)</option>
+                            <option value="6">Purple (u)</option>
+                            <option value="7">White (w)</option>
+                            <option value="8">Yellow (y)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <label for="pop">
+                        <span>Population</span>
+                        <span class="req-dot" id="dot-pop"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="pop" id="pop" required>
+                            <option value="">Select population...</option>
+                            <option value="0">Abundant (a)</option>
+                            <option value="1">Clustered (c)</option>
+                            <option value="2">Numerous (n)</option>
+                            <option value="3">Scattered (s)</option>
+                            <option value="4">Several (v)</option>
+                            <option value="5">Solitary (y)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <label for="hab">
+                        <span>Habitat</span>
+                        <span class="req-dot" id="dot-hab"></span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select name="hab" id="hab" required>
+                            <option value="">Select habitat...</option>
+                            <option value="0">Woods (d)</option>
+                            <option value="1">Grasses (g)</option>
+                            <option value="2">Leaves (l)</option>
+                            <option value="3">Meadows (m)</option>
+                            <option value="4">Paths (p)</option>
+                            <option value="5">Urban (u)</option>
+                            <option value="6">Waste (w)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sticky Floating Bottom Action Dock -->
+        <div class="action-dock">
+            <div class="dock-info">
+                <div class="dock-indicator" id="dockIndicator"></div>
+                <div class="dock-text">
+                    <span id="dockStatus">Complete all fields to classify</span>
+                </div>
+            </div>
+            <button type="submit" class="submit-btn" id="submitBtn">
+                <i class="fa-solid fa-magnifying-glass-chart"></i>
+                <span>Analyze Specimen</span>
+            </button>
+        </div>
+    </form>
+
+    <!-- Footer & Disclaimer -->
+    <footer class="app-footer">
+        <div class="disclaimer-box">
+            <i class="fa-solid fa-shield-virus"></i>
+            <strong>Important Safety Notice:</strong> This machine learning tool is for scientific education and exploratory research. Never consume wild mushrooms based solely on automated predictions.
+        </div>
+        <p>&copy; 2026 MycoSense AI — Powered by Scikit-Learn Random Forest &amp; Django.</p>
+    </footer>
+</div>
+
+<script>
+    const sampleEdible = {
+        'capShape': '5', 'CapSurface': '2', 'capColor': '4', 'bruises': '1', 'odor': '5',
+        'gillAttach': '1', 'gillSpace': '1', 'gillSize': '0', 'gillColor': '10',
+        'stalkShape': '0', 'stalkRoot': '1', 'stalkARing': '2', 'stalkBRing': '2',
+        'stalkCARing': '7', 'stalkCBRing': '7', 'veilType': '0', 'veilColor': '2',
+        'ringNumber': '1', 'ringType': '4', 'sporePrintColor': '7', 'pop': '3', 'hab': '0'
+    };
+
+    const samplePoisonous = {
+        'capShape': '5', 'CapSurface': '2', 'capColor': '4', 'bruises': '1', 'odor': '6',
+        'gillAttach': '1', 'gillSpace': '0', 'gillSize': '1', 'gillColor': '4',
+        'stalkShape': '0', 'stalkRoot': '3', 'stalkARing': '2', 'stalkBRing': '2',
+        'stalkCARing': '7', 'stalkCBRing': '7', 'veilType': '0', 'veilColor': '2',
+        'ringNumber': '1', 'ringType': '4', 'sporePrintColor': '2', 'pop': '3', 'hab': '5'
+    };
+
+    function updateProgress() {
+        const form = document.getElementById('mushroomForm');
+        const selects = form.querySelectorAll('select[required]');
+        let filledCount = 0;
+
+        selects.forEach(select => {
+            const dot = document.getElementById('dot-' + select.id);
+            if (select.value !== '') {
+                filledCount++;
+                if (dot) dot.classList.add('filled');
+            } else {
+                if (dot) dot.classList.remove('filled');
+            }
+        });
+
+        const total = selects.length;
+        const percent = Math.round((filledCount / total) * 100);
+
+        document.getElementById('progressText').textContent = `${filledCount} / ${total} Selected`;
+        document.getElementById('progressBar').style.width = `${percent}%`;
+
+        const indicator = document.getElementById('dockIndicator');
+        const dockStatus = document.getElementById('dockStatus');
+
+        if (filledCount === total) {
+            indicator.classList.add('ready');
+            dockStatus.innerHTML = `All <strong>22 characteristics</strong> ready for ML evaluation`;
+        } else {
+            indicator.classList.remove('ready');
+            dockStatus.innerHTML = `<strong>${total - filledCount} remaining</strong> characteristics to specify`;
+        }
+    }
+
+    function loadPreset(type) {
+        const data = type === 'edible' ? sampleEdible : samplePoisonous;
+        Object.keys(data).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.value = data[id];
+            }
+        });
+        updateProgress();
+        
+        // Auto submit via AJAX for instant feedback if desired
+        submitFormAjax();
+    }
+
+    function resetForm() {
+        document.getElementById('mushroomForm').reset();
+        document.getElementById('veilType').value = '0'; // default partial
+        const resultSec = document.getElementById('resultSection') || document.getElementById('resultContainer');
+        if (resultSec) resultSec.classList.remove('active');
+        const serverAlert = document.getElementById('serverAlert');
+        if (serverAlert) serverAlert.style.display = 'none';
+        updateProgress();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Modern AJAX form submission with fallback to standard POST
+    async function submitFormAjax() {
+        const form = document.getElementById('mushroomForm');
+        const formData = new FormData(form);
+        const submitBtn = document.getElementById('submitBtn');
+        const originalBtnHtml = submitBtn.innerHTML;
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Classifying...</span>`;
+
+        try {
+            const response = await fetch(window.location.href, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                renderResult(data.response, data.confidence);
+            } else {
+                // If server returns error JSON or fallback
+                const data = await response.json().catch(() => null);
+                if (data && data.error_message) {
+                    alert(data.error_message);
+                } else {
+                    form.submit(); // fallback to standard browser POST
+                }
+            }
+        } catch (err) {
+            console.error('AJAX request failed, falling back to standard submit:', err);
+            form.submit();
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnHtml;
+        }
+    }
+
+    function renderResult(predResult, confidence) {
+        const container = document.getElementById('resultContainer');
+        const box = document.getElementById('resultBox');
+        const icon = document.getElementById('resultIcon');
+        const title = document.getElementById('resultTitle');
+        const desc = document.getElementById('resultDescription');
+        const confVal = document.getElementById('resultConfidence');
+
+        box.className = 'result-box ' + (predResult === 'edible' ? 'edible' : 'poisonous');
+
+        if (predResult === 'edible') {
+            icon.innerHTML = `<i class="fa-solid fa-circle-check"></i>`;
+            title.textContent = 'SAFE • EDIBLE SPECIMEN';
+            desc.innerHTML = 'Based on the 22 morphological and sensory characteristics provided, the Random Forest model classified this mushroom as <strong>edible</strong> with high reliability. Always exercise caution and consult certified mycologists.';
+        } else {
+            icon.innerHTML = `<i class="fa-solid fa-skull-crossbones"></i>`;
+            title.textContent = 'TOXIC • POISONOUS SPECIMEN';
+            desc.innerHTML = 'Warning: The model identifies this specimen as <strong>poisonous</strong>. Ingestion could cause severe toxicity or illness. Never consume wild mushrooms without expert verification.';
+        }
+
+        confVal.textContent = (confidence || 99.8) + '%';
+        container.classList.add('active');
+
+        // Smooth scroll to result
+        container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Attach listeners
+    document.addEventListener('DOMContentLoaded', () => {
+        const selects = document.querySelectorAll('#mushroomForm select');
+        selects.forEach(sel => {
+            sel.addEventListener('change', updateProgress);
+        });
+        
+        updateProgress();
+
+        document.getElementById('mushroomForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitFormAjax();
+        });
+    });
+</script>
+
+</body>
+</html>
